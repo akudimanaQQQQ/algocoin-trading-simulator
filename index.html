@@ -1,0 +1,535 @@
+<!DOCTYPE html>
+<html lang="id" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simulator Trading Algocoin</title>
+    <link rel="icon" type="image/ico" href="favicon.ico">
+    <!-- Libraries -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+    
+    <!-- Tailwind Config for Dark Mode -->
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        'crypto-dark': '#2a233a',
+                        'crypto-panel': '#483c64',
+                        'crypto-light': '#685790',
+                        'crypto-green': '#10b981',
+                        'crypto-red': '#ef4444'
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* CSS Kustom */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #685790; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #826cb5; }
+        
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        @keyframes fadeOut {
+            from { opacity: 1; transform: scale(1); }
+            to { opacity: 0; transform: scale(0.95); }
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: scale(0.95); }
+            to { opacity: 1; transform: scale(1); }
+        }
+        
+        .toast-enter { animation: slideIn 0.3s ease-out forwards; }
+        .toast-exit { animation: fadeOut 0.3s ease-out forwards; }
+        .modal-enter { animation: fadeIn 0.2s ease-out forwards; }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-900 dark:bg-crypto-dark dark:text-gray-100 transition-colors duration-300 min-h-screen font-sans">
+    
+    <header class="bg-white dark:bg-crypto-panel shadow-md border-b border-gray-200 dark:border-crypto-light p-4 sticky top-0 z-10 transition-colors">
+        <div class="max-w-7xl mx-auto flex justify-between items-center">
+            <div class="flex items-center space-x-2">
+                <div class="w-8 h-8 bg-crypto-panel dark:bg-crypto-dark rounded-full flex items-center justify-center font-bold text-white shadow-lg border border-transparent dark:border-crypto-light">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="12.6" cy="12.5004" r="9.6" fill="#E37E5F"></circle><circle cx="11.3998" cy="11.5004" r="9.6" fill="#FFE15F"></circle><circle cx="11.4002" cy="11.4998" r="7.2" fill="#E38FFF" style="mix-blend-mode: multiply;"></circle><mask id="coin_svg__mask0_5084_9525" maskUnits="userSpaceOnUse" x="4" y="4" width="15" height="15" style="mask-type: alpha;"><circle cx="11.4002" cy="11.4998" r="7.2" fill="#F49200"></circle></mask><g mask="url(#coin_svg__mask0_5084_9525)"><circle cx="12.3641" cy="12.4471" r="7.2" fill="#FEB241"></circle></g></svg>
+                </div>
+                <h1 class="text-xl font-bold tracking-wider text-gray-900 dark:text-white">Algocoin</h1>
+            </div>
+            <button id="themeToggle" class="p-2 rounded-lg bg-gray-200 dark:bg-crypto-dark hover:bg-gray-300 dark:hover:bg-crypto-light transition-colors border border-transparent dark:border-crypto-light" aria-label="Toggle Dark Mode">
+                <svg id="moonIcon" class="w-5 h-5 hidden dark:block text-yellow-300" fill="currentColor" viewBox="0 0 20 20"><path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z"></path></svg>
+                <svg id="sunIcon" class="w-5 h-5 block dark:hidden text-crypto-panel" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4.22 2.38a1 1 0 011.415 0l.707.707a1 1 0 01-1.414 1.414l-.707-.707a1 1 0 010-1.414zM18 10a1 1 0 01-1 1h-1a1 1 0 110-2h1a1 1 0 011 1zm-4.22 4.22a1 1 0 010 1.415l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.415 0zM10 16a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zm-4.22-2.38a1 1 0 01-1.415 0l-.707-.707a1 1 0 011.414-1.414l.707.707a1 1 0 010 1.414zM2 10a1 1 0 011-1h1a1 1 0 110 2H3a1 1 0 01-1-1zm4.22-4.22a1 1 0 010-1.415l.707-.707a1 1 0 011.414 1.414l-.707.707a1 1 0 01-1.415 0z" clip-rule="evenodd"></path></svg>
+            </button>
+        </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto p-4 md:p-6 grid grid-cols-1 lg:grid-cols-3 gap-6 mt-4">
+        
+        <!-- Kolom Kiri: Grafik & Harga -->
+        <div class="lg:col-span-2 space-y-6">
+            <div class="bg-white dark:bg-crypto-panel rounded-2xl p-6 shadow-sm border border-gray-200 dark:border-gray-800 transition-colors">
+                <div class="flex flex-col md:flex-row justify-between items-start md:items-center">
+                    <div>
+                        <h2 class="text-sm font-medium text-gray-500 dark:text-gray-300">Harga Live ALG/IDR</h2>
+                        <div class="flex items-end space-x-3 mt-1">
+                            <span id="currentPriceDisplay" class="text-3xl font-bold tracking-tight text-gray-900 dark:text-white">Rp 0</span>
+                            <span id="priceChangeDisplay" class="text-sm font-semibold mb-1 flex items-center">--</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="w-full h-72 md:h-96 mt-6 relative">
+                    <canvas id="priceChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Kolom Kanan: Panel Kontrol -->
+        <div class="space-y-6">
+            
+            <!-- Ringkasan Portofolio -->
+            <div class="bg-white dark:bg-crypto-panel rounded-2xl p-6 shadow-sm border border-gray-200 dark:border-gray-800 transition-colors">
+                <h3 class="text-lg font-bold mb-4 border-b border-gray-200 dark:border-gray-700 pb-2 text-gray-900 dark:text-white">Portofolio Anda</h3>
+                <div class="space-y-4">
+                    <div>
+                        <p class="text-sm text-gray-500 dark:text-gray-300">Saldo Tersedia (IDR)</p>
+                        <p id="balanceDisplay" class="text-xl font-semibold text-gray-900 dark:text-white">Rp 0</p>
+                    </div>
+                    <div>
+                        <p class="text-sm text-gray-500 dark:text-gray-300">Kepemilikan (ALG)</p>
+                        <p id="coinDisplay" class="text-xl font-semibold text-gray-900 dark:text-white">0.00000000</p>
+                    </div>
+                    <div class="pt-4 border-t border-gray-200 dark:border-gray-700">
+                        <p class="text-sm text-gray-500 dark:text-gray-300">Total Ekuitas (IDR)</p>
+                        <p id="equityDisplay" class="text-2xl font-bold text-crypto-panel dark:text-crypto-light">Rp 0</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Kontrol Trading -->
+            <div class="bg-white dark:bg-crypto-panel rounded-2xl p-6 shadow-sm border border-gray-200 dark:border-gray-800 transition-colors">
+                <div class="flex space-x-2 mb-4 bg-gray-100 dark:bg-crypto-dark p-1 rounded-lg">
+                    <button id="tabBuy" class="flex-1 py-2 text-sm font-medium rounded-md bg-white dark:bg-crypto-panel shadow text-crypto-green transition-colors border border-transparent dark:border-crypto-light">Beli</button>
+                    <button id="tabSell" class="flex-1 py-2 text-sm font-medium rounded-md text-gray-500 dark:text-gray-400 hover:text-crypto-red transition-colors">Jual</button>
+                </div>
+
+                <div id="tradeForm">
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Jumlah (ALG)</label>
+                    <div class="relative rounded-md shadow-sm mb-4">
+                        <input type="number" id="tradeAmount" step="0.000001" min="0" placeholder="0.00" class="block w-full rounded-lg border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-crypto-dark py-3 pl-4 pr-12 focus:border-crypto-light focus:ring-crypto-light sm:text-sm text-gray-900 dark:text-white transition-colors" />
+                        <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3">
+                            <span class="text-gray-500 dark:text-gray-400 sm:text-sm">ALG</span>
+                        </div>
+                    </div>
+                    
+                    <div class="flex justify-between text-sm mb-4 text-gray-500 dark:text-gray-300">
+                        <span>Estimasi Total:</span>
+                        <span id="estimatedTotal" class="font-medium text-gray-900 dark:text-white">Rp 0</span>
+                    </div>
+
+                    <button id="btnAction" class="w-full flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-bold text-white bg-crypto-green hover:bg-emerald-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 transition-colors">
+                        Beli ALG
+                    </button>
+                </div>
+            </div>
+
+            <!-- Sistem Simpan/Muat -->
+            <div class="bg-white dark:bg-crypto-panel rounded-2xl p-6 shadow-sm border border-gray-200 dark:border-gray-800 transition-colors">
+                <h3 class="text-sm font-bold mb-4 text-gray-500 dark:text-gray-300 uppercase tracking-wider text-center">Sistem Data</h3>
+                <div class="flex space-x-3">
+                    <button id="btnSave" class="flex-1 py-2 px-4 bg-gray-200 dark:bg-crypto-dark hover:bg-gray-300 dark:hover:bg-crypto-light rounded-lg text-sm font-medium text-gray-800 dark:text-white transition-colors border border-transparent dark:border-crypto-light">Salin Data</button>
+                    <button id="btnLoad" class="flex-1 py-2 px-4 bg-gray-200 dark:bg-crypto-dark hover:bg-gray-300 dark:hover:bg-crypto-light rounded-lg text-sm font-medium text-gray-800 dark:text-white transition-colors border border-transparent dark:border-crypto-light">Muat Data</button>
+                </div>
+                <p class="text-xs text-gray-500 dark:text-gray-400 mt-3 text-center">Data diamankan menggunakan sistem sandi AES-256 bit via salin-tempel teks.</p>
+            </div>
+        </div>
+    </main>
+
+    <!-- Wadah Notifikasi Toast -->
+    <div id="toastContainer" class="fixed bottom-4 right-4 z-50 flex flex-col space-y-2 pointer-events-none"></div>
+
+    <!-- Jendela Modal Kustom (Pengganti Prompt/Alert) -->
+    <div id="customModal" class="fixed inset-0 bg-black/60 hidden items-center justify-center z-[100] backdrop-blur-sm transition-opacity">
+        <div class="bg-white dark:bg-crypto-panel rounded-xl shadow-2xl w-11/12 max-w-lg p-6 transform modal-enter border border-gray-200 dark:border-crypto-light">
+            <h3 id="modalTitle" class="text-xl font-bold mb-4 text-gray-900 dark:text-white">Judul Modal</h3>
+            <p id="modalDescription" class="text-sm text-gray-600 dark:text-gray-300 mb-4 hidden">Deskripsi modal disini.</p>
+            
+            <textarea id="modalTextarea" class="w-full h-40 p-3 border rounded-lg dark:bg-crypto-dark dark:border-gray-600 text-gray-900 dark:text-white focus:ring-2 focus:ring-crypto-light focus:outline-none mb-4 font-mono text-sm resize-none" placeholder="Tempel teks di sini..."></textarea>
+            
+            <div class="flex justify-end space-x-3 mt-2">
+                <button id="modalBtnCancel" class="px-5 py-2.5 rounded-lg bg-gray-200 dark:bg-crypto-dark text-gray-800 dark:text-white hover:bg-gray-300 dark:hover:bg-crypto-light transition-colors font-medium">Batal</button>
+                <button id="modalBtnAction" class="px-5 py-2.5 rounded-lg bg-crypto-green text-white hover:bg-emerald-600 transition-colors font-medium">Aksi</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- KONFIGURASI GAME ---
+        const INITIAL_PRICE = 1000000000; // Harga awal 1 Miliar Rupiah
+        const INITIAL_BALANCE = 50000000; // Saldo awal 50 Juta Rupiah
+        const ENCRYPTION_KEY = "ALG0C01N_S3CR3T_K3Y_2026!"; // Kunci enkripsi AES-256
+        
+        let state = { 
+            balance: INITIAL_BALANCE, 
+            coins: 0, 
+            currentPrice: INITIAL_PRICE 
+        };
+        const MAX_HISTORY = 60; // Menyimpan histori 60 detik terakhir
+
+        // --- REFERENSI ELEMEN UI ---
+        const elCurrentPrice = document.getElementById('currentPriceDisplay');
+        const elPriceChange = document.getElementById('priceChangeDisplay');
+        const elBalance = document.getElementById('balanceDisplay');
+        const elCoin = document.getElementById('coinDisplay');
+        const elEquity = document.getElementById('equityDisplay');
+        
+        const elTradeAmount = document.getElementById('tradeAmount');
+        const elEstimatedTotal = document.getElementById('estimatedTotal');
+        const btnAction = document.getElementById('btnAction');
+        
+        const tabBuy = document.getElementById('tabBuy');
+        const tabSell = document.getElementById('tabSell');
+        
+        let currentTradeMode = 'buy'; 
+
+        // Fungsi Pemformatan Teks
+        const formatIDR = (num) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(num);
+        const formatCoin = (num) => num.toFixed(8);
+
+        // --- PENGATURAN GRAFIK (CHART.JS) ---
+        const ctx = document.getElementById('priceChart').getContext('2d');
+        const gradient = ctx.createLinearGradient(0, 0, 0, 400);
+        gradient.addColorStop(0, 'rgba(104, 87, 144, 0.5)'); // warna crypto-light transparan
+        gradient.addColorStop(1, 'rgba(104, 87, 144, 0.0)');
+
+        const chartConfig = {
+            type: 'line',
+            data: {
+                labels: Array(MAX_HISTORY).fill(''),
+                datasets: [{
+                    label: 'ALG/IDR',
+                    data: Array(MAX_HISTORY).fill(INITIAL_PRICE),
+                    borderColor: '#685790',
+                    backgroundColor: gradient,
+                    borderWidth: 2,
+                    pointRadius: 0,
+                    pointHoverRadius: 5,
+                    fill: true,
+                    tension: 0.1
+                }]
+            },
+            options: {
+                responsive: true, 
+                maintainAspectRatio: false, 
+                animation: { duration: 0 }, // Animasi 0 agar cepat dan responsif
+                interaction: { intersect: false, mode: 'index' },
+                plugins: { 
+                    legend: { display: false }, 
+                    tooltip: { 
+                        callbacks: { label: (c) => formatIDR(c.parsed.y) },
+                        backgroundColor: '#2a233a',
+                        titleColor: '#fff',
+                        bodyColor: '#fff',
+                        borderColor: '#685790',
+                        borderWidth: 1
+                    } 
+                },
+                scales: {
+                    x: { display: false },
+                    y: {
+                        display: true, position: 'right',
+                        grid: { color: 'rgba(156, 163, 175, 0.1)' },
+                        ticks: { 
+                            callback: (v) => v >= 1000000 ? (v / 1000000).toFixed(0) + 'M' : v,
+                            color: '#9ca3af'
+                        }
+                    }
+                }
+            }
+        };
+        const priceChart = new Chart(ctx, chartConfig);
+
+        // --- SISTEM NOTIFIKASI TOAST ---
+        function showToast(message, type = 'info') {
+            const container = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            
+            let bgClass = 'bg-crypto-panel';
+            if (type === 'success') bgClass = 'bg-crypto-green';
+            if (type === 'error') bgClass = 'bg-crypto-red';
+            
+            toast.className = `toast-enter ${bgClass} text-white px-5 py-3 rounded-lg shadow-xl flex items-center space-x-3 text-sm font-medium z-50 min-w-[280px] pointer-events-auto`;
+            
+            // Ikon dinamis berdasarkan tipe
+            let icon = '';
+            if (type === 'success') icon = `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>`;
+            else if (type === 'error') icon = `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>`;
+            else icon = `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>`;
+
+            toast.innerHTML = `${icon} <span>${message}</span>`;
+            container.appendChild(toast);
+            
+            setTimeout(() => {
+                toast.classList.replace('toast-enter', 'toast-exit');
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+
+        // --- SISTEM MODAL KUSTOM ---
+        const customModal = document.getElementById('customModal');
+        const modalTitle = document.getElementById('modalTitle');
+        const modalDescription = document.getElementById('modalDescription');
+        const modalTextarea = document.getElementById('modalTextarea');
+        const modalBtnCancel = document.getElementById('modalBtnCancel');
+        const modalBtnAction = document.getElementById('modalBtnAction');
+        let currentModalCallback = null;
+
+        function openModal(options) {
+            modalTitle.innerText = options.title || 'Modal';
+            
+            if (options.description) {
+                modalDescription.innerText = options.description;
+                modalDescription.classList.remove('hidden');
+            } else {
+                modalDescription.classList.add('hidden');
+            }
+
+            modalTextarea.placeholder = options.placeholder || '';
+            modalTextarea.value = options.value || '';
+            modalTextarea.readOnly = options.readOnly || false;
+            
+            modalBtnAction.innerText = options.actionText || 'Konfirmasi';
+            
+            // Ubah warna tombol aksi
+            modalBtnAction.className = `px-5 py-2.5 rounded-lg text-white transition-colors font-medium ${options.actionColor || 'bg-crypto-green hover:bg-emerald-600'}`;
+
+            currentModalCallback = options.onAction;
+
+            customModal.classList.remove('hidden');
+            customModal.classList.add('flex');
+            
+            // Fokus textarea otomatis jika tidak readonly
+            if (!options.readOnly) {
+                setTimeout(() => modalTextarea.focus(), 100);
+            }
+        }
+
+        function closeModal() {
+            customModal.classList.add('hidden');
+            customModal.classList.remove('flex');
+            modalTextarea.value = '';
+            currentModalCallback = null;
+        }
+
+        modalBtnCancel.addEventListener('click', closeModal);
+        modalBtnAction.addEventListener('click', () => {
+            if (currentModalCallback) currentModalCallback(modalTextarea.value);
+        });
+
+
+        // --- LOGIKA UTAMA (TRADING & PEMBARUAN HARGA) ---
+        function updatePrice() {
+            // Simulasi pergerakan harga kripto yang realistis
+            const volatility = 0.005; // 0.5% per detik
+            const changePercent = (Math.random() - 0.5) * 2 * volatility; 
+            const oldPrice = state.currentPrice;
+            
+            state.currentPrice += state.currentPrice * changePercent;
+            
+            // Batas minimal harga agar tidak negatif
+            if (state.currentPrice < 1000) state.currentPrice = 1000;
+
+            // Perbarui grafik
+            priceChart.data.datasets[0].data.shift();
+            priceChart.data.datasets[0].data.push(state.currentPrice);
+            priceChart.update();
+            
+            // Perbarui antarmuka pengguna
+            updateUI(oldPrice);
+        }
+
+        function updateUI(oldPrice = state.currentPrice) {
+            elCurrentPrice.innerText = formatIDR(state.currentPrice);
+            const diff = state.currentPrice - oldPrice;
+            const diffPercent = (diff / oldPrice) * 100;
+            
+            // Indikator Warna Harga
+            if (diff >= 0) {
+                elPriceChange.innerHTML = `<svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 10l7-7m0 0l7 7m-7-7v18"></path></svg> ${diffPercent.toFixed(2)}%`;
+                elPriceChange.className = "text-sm font-semibold mb-1 flex items-center text-crypto-green";
+            } else {
+                elPriceChange.innerHTML = `<svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"></path></svg> ${Math.abs(diffPercent).toFixed(2)}%`;
+                elPriceChange.className = "text-sm font-semibold mb-1 flex items-center text-crypto-red";
+            }
+
+            // Pembaruan Portofolio
+            elBalance.innerText = formatIDR(state.balance);
+            elCoin.innerText = formatCoin(state.coins);
+            elEquity.innerText = formatIDR(state.balance + (state.coins * state.currentPrice));
+            
+            updateEstimation();
+        }
+
+        function setTradeMode(mode) {
+            currentTradeMode = mode;
+            elTradeAmount.value = '';
+            updateEstimation();
+
+            if (mode === 'buy') {
+                tabBuy.className = "flex-1 py-2 text-sm font-medium rounded-md bg-white dark:bg-crypto-panel shadow text-crypto-green transition-colors border border-transparent dark:border-crypto-light";
+                tabSell.className = "flex-1 py-2 text-sm font-medium rounded-md text-gray-500 dark:text-gray-400 hover:text-crypto-red transition-colors";
+                btnAction.className = "w-full flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-bold text-white bg-crypto-green hover:bg-emerald-600 transition-colors focus:outline-none";
+                btnAction.innerText = "Beli ALG";
+            } else {
+                tabSell.className = "flex-1 py-2 text-sm font-medium rounded-md bg-white dark:bg-crypto-panel shadow text-crypto-red transition-colors border border-transparent dark:border-crypto-light";
+                tabBuy.className = "flex-1 py-2 text-sm font-medium rounded-md text-gray-500 dark:text-gray-400 hover:text-crypto-green transition-colors";
+                btnAction.className = "w-full flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-bold text-white bg-crypto-red hover:bg-red-600 transition-colors focus:outline-none";
+                btnAction.innerText = "Jual ALG";
+            }
+        }
+
+        function updateEstimation() {
+            const amount = parseFloat(elTradeAmount.value) || 0;
+            elEstimatedTotal.innerText = formatIDR(amount * state.currentPrice);
+        }
+
+        function executeTrade() {
+            const amount = parseFloat(elTradeAmount.value);
+            if (isNaN(amount) || amount <= 0) {
+                return showToast("Masukkan jumlah yang valid.", "error");
+            }
+
+            const totalValue = amount * state.currentPrice;
+            
+            if (currentTradeMode === 'buy') {
+                if (state.balance < totalValue) return showToast("Saldo IDR Anda tidak mencukupi!", "error");
+                state.balance -= totalValue;
+                state.coins += amount;
+                showToast(`Berhasil membeli ${formatCoin(amount)} ALG`, "success");
+            } else {
+                if (state.coins < amount) return showToast("Saldo koin ALG Anda tidak mencukupi!", "error");
+                state.coins -= amount;
+                state.balance += totalValue;
+                showToast(`Berhasil menjual ${formatCoin(amount)} ALG`, "success");
+            }
+            
+            elTradeAmount.value = '';
+            updateUI();
+        }
+
+        // --- SISTEM SIMPAN & MUAT (AES-256) ---
+        function saveGame() {
+            try {
+                // Enkripsi Data
+                const dataString = JSON.stringify(state);
+                const encrypted = CryptoJS.AES.encrypt(dataString, ENCRYPTION_KEY).toString();
+                
+                // Gunakan execCommand untuk menyalin teks secara aman dari browser
+                const tempTextarea = document.createElement("textarea");
+                tempTextarea.value = encrypted;
+                tempTextarea.style.position = "fixed";
+                tempTextarea.style.opacity = "0";
+                document.body.appendChild(tempTextarea);
+                tempTextarea.select();
+                
+                let copied = false;
+                try {
+                    copied = document.execCommand('copy');
+                } catch (err) {
+                    copied = false;
+                }
+                
+                document.body.removeChild(tempTextarea);
+
+                if (copied) {
+                    showToast("Kode sandi berhasil disalin ke Papan Klip (Clipboard)!", "success");
+                } else {
+                    // Jika execCommand diblokir, buka modal untuk salin manual
+                    openModal({
+                        title: "Salin Data Anda",
+                        description: "Salin teks acak di bawah ini untuk menyimpan progres permainan Anda. Simpan di catatan atau tempat aman lainnya.",
+                        value: encrypted,
+                        readOnly: true,
+                        actionText: "Tutup",
+                        actionColor: "bg-crypto-panel hover:bg-crypto-light",
+                        onAction: closeModal
+                    });
+                }
+            } catch (err) {
+                console.error(err);
+                showToast("Terjadi kesalahan saat menyandikan data.", "error");
+            }
+        }
+
+        function loadGame() {
+            openModal({
+                title: "Muat Data Simpanan",
+                description: "Tempelkan kode rahasia AES-256 Anda di kotak bawah ini untuk melanjutkan progres permainan.",
+                placeholder: "U2FsdGVkX1...",
+                actionText: "Muat Data",
+                actionColor: "bg-crypto-green hover:bg-emerald-600",
+                onAction: (inputString) => {
+                    const input = inputString.trim();
+                    if (!input) {
+                        showToast("Kolom input tidak boleh kosong.", "error");
+                        return;
+                    }
+                    
+                    try {
+                        // Dekripsi Data
+                        const decryptedBytes = CryptoJS.AES.decrypt(input, ENCRYPTION_KEY);
+                        const decryptedString = decryptedBytes.toString(CryptoJS.enc.Utf8);
+                        
+                        if (!decryptedString) throw new Error("Data rusak atau sandi salah.");
+                        
+                        const loadedState = JSON.parse(decryptedString);
+                        
+                        // Pulihkan State
+                        state.balance = loadedState.balance;
+                        state.coins = loadedState.coins;
+                        state.currentPrice = loadedState.currentPrice;
+                        
+                        // Perbarui Grafik agar mulus
+                        priceChart.data.datasets[0].data = Array(MAX_HISTORY).fill(state.currentPrice);
+                        priceChart.update();
+                        
+                        updateUI();
+                        closeModal();
+                        showToast("Data permainan berhasil dimuat!", "success");
+                    } catch (err) {
+                        console.error(err);
+                        showToast("Gagal memuat. Pastikan kode sandi dimasukkan dengan benar.", "error");
+                    }
+                }
+            });
+        }
+
+        // --- REGISTRASI EVENT LISTENER ---
+        tabBuy.addEventListener('click', () => setTradeMode('buy'));
+        tabSell.addEventListener('click', () => setTradeMode('sell'));
+        elTradeAmount.addEventListener('input', updateEstimation);
+        btnAction.addEventListener('click', executeTrade);
+        
+        document.getElementById('btnSave').addEventListener('click', saveGame);
+        document.getElementById('btnLoad').addEventListener('click', loadGame);
+
+        // Toggle Dark Mode
+        const htmlElement = document.documentElement;
+        document.getElementById('themeToggle').addEventListener('click', () => {
+            htmlElement.classList.toggle('dark');
+        });
+
+        // Jalankan game
+        window.onload = function() {
+            updateUI();
+            setInterval(updatePrice, 1000); // Gerak harga setiap 1 detik
+        };
+
+    </script>
+</body>
+</html>
